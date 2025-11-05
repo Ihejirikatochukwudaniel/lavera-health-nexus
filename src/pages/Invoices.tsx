@@ -22,7 +22,7 @@ interface Invoice {
   issue_date: string;
   due_date: string;
   total_amount: number;
-  patients?: { name: string };
+  patients?: { name: string } | null;
 }
 
 const Invoices = () => {
@@ -30,7 +30,7 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,11 +49,11 @@ const Invoices = () => {
   const fetchInvoices = async () => {
     let query = supabase
       .from("invoices")
-      .select("*, patients(name)")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (statusFilter !== "all") {
-      query = query.eq("status", statusFilter);
+      query = query.eq("status", statusFilter as any);
     }
 
     if (dateFilter) {
@@ -72,7 +72,18 @@ const Invoices = () => {
         variant: "destructive",
       });
     } else {
-      setInvoices(data || []);
+      // Fetch patient names separately
+      const invoicesWithPatients = await Promise.all(
+        (data || []).map(async (invoice) => {
+          const { data: patient } = await supabase
+            .from("patients")
+            .select("name")
+            .eq("id", invoice.patient_id)
+            .single();
+          return { ...invoice, patients: patient };
+        })
+      );
+      setInvoices(invoicesWithPatients);
     }
   };
 
@@ -165,7 +176,7 @@ const Invoices = () => {
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
       invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.patients?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      (invoice.patients?.name?.toLowerCase() || "").includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
