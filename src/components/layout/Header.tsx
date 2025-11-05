@@ -1,7 +1,10 @@
-import { Search, Bell, Moon } from "lucide-react";
+import { Search, Bell, Moon, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   title?: string;
@@ -10,6 +13,22 @@ interface HeaderProps {
 }
 
 export const Header = ({ title, subtitle, action }: HeaderProps) => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      navigate("/auth");
+    }
+  };
+
   return (
     <header className="bg-card border-b border-border sticky top-0 z-10">
       <div className="flex items-center justify-between px-8 py-4">
@@ -31,6 +50,9 @@ export const Header = ({ title, subtitle, action }: HeaderProps) => {
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
+            <LogOut className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3 pl-4 border-l border-border">
             <Avatar>
