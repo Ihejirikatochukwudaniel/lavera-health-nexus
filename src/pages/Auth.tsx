@@ -7,28 +7,73 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const signUpSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be less than 100 characters")
+    .regex(/^[a-zA-Z\s'-]+$/, "Name can only contain letters, spaces, hyphens, and apostrophes"),
+  email: z.string()
+    .trim()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
+
+const signInSchema = z.object({
+  email: z.string()
+    .trim()
+    .email("Invalid email address"),
+  password: z.string()
+    .min(1, "Password is required"),
+});
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
+  const [signInErrors, setSignInErrors] = useState<Record<string, string>>({});
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    setSignUpErrors({});
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("signup-email") as string;
-    const password = formData.get("signup-password") as string;
-    const name = formData.get("signup-name") as string;
+    const data = {
+      name: formData.get("signup-name") as string,
+      email: formData.get("signup-email") as string,
+      password: formData.get("signup-password") as string,
+    };
+
+    // Validate input
+    const validation = signUpSchema.safeParse(data);
+    if (!validation.success) {
+      const errors: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0].toString()] = err.message;
+        }
+      });
+      setSignUpErrors(errors);
+      return;
+    }
+
+    setIsLoading(true);
 
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: validation.data.email,
+      password: validation.data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
-          name,
+          name: validation.data.name,
         },
       },
     });
@@ -46,20 +91,38 @@ const Auth = () => {
         title: "Account created successfully",
         description: "You can now log in with your credentials.",
       });
+      e.currentTarget.reset();
     }
   };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    setSignInErrors({});
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get("signin-email") as string;
-    const password = formData.get("signin-password") as string;
+    const data = {
+      email: formData.get("signin-email") as string,
+      password: formData.get("signin-password") as string,
+    };
+
+    // Validate input
+    const validation = signInSchema.safeParse(data);
+    if (!validation.success) {
+      const errors: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0].toString()] = err.message;
+        }
+      });
+      setSignInErrors(errors);
+      return;
+    }
+
+    setIsLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: validation.data.email,
+      password: validation.data.password,
     });
 
     setIsLoading(false);
@@ -102,6 +165,9 @@ const Auth = () => {
                     placeholder="doctor@lavera.com"
                     required
                   />
+                  {signInErrors.email && (
+                    <p className="text-sm text-destructive">{signInErrors.email}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Password</Label>
@@ -111,6 +177,9 @@ const Auth = () => {
                     type="password"
                     required
                   />
+                  {signInErrors.password && (
+                    <p className="text-sm text-destructive">{signInErrors.password}</p>
+                  )}
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign In"}
@@ -129,6 +198,9 @@ const Auth = () => {
                     placeholder="Dr. John Smith"
                     required
                   />
+                  {signUpErrors.name && (
+                    <p className="text-sm text-destructive">{signUpErrors.name}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
@@ -139,6 +211,9 @@ const Auth = () => {
                     placeholder="doctor@lavera.com"
                     required
                   />
+                  {signUpErrors.email && (
+                    <p className="text-sm text-destructive">{signUpErrors.email}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
@@ -146,9 +221,12 @@ const Auth = () => {
                     id="signup-password"
                     name="signup-password"
                     type="password"
+                    placeholder="8+ chars, uppercase, lowercase, number"
                     required
-                    minLength={6}
                   />
+                  {signUpErrors.password && (
+                    <p className="text-sm text-destructive">{signUpErrors.password}</p>
+                  )}
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Create Account"}
