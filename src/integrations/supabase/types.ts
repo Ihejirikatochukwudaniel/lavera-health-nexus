@@ -111,6 +111,61 @@ export type Database = {
         }
         Relationships: []
       }
+      dispensed_medicines: {
+        Row: {
+          dispensed_at: string
+          dispensed_by: string
+          id: string
+          inventory_item_id: string
+          medical_record_id: string | null
+          notes: string | null
+          patient_id: string
+          quantity_dispensed: number
+        }
+        Insert: {
+          dispensed_at?: string
+          dispensed_by: string
+          id?: string
+          inventory_item_id: string
+          medical_record_id?: string | null
+          notes?: string | null
+          patient_id: string
+          quantity_dispensed: number
+        }
+        Update: {
+          dispensed_at?: string
+          dispensed_by?: string
+          id?: string
+          inventory_item_id?: string
+          medical_record_id?: string | null
+          notes?: string | null
+          patient_id?: string
+          quantity_dispensed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispensed_medicines_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "pharmacy_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispensed_medicines_medical_record_id_fkey"
+            columns: ["medical_record_id"]
+            isOneToOne: false
+            referencedRelation: "medical_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispensed_medicines_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           billing_item_id: string | null
@@ -370,6 +425,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pharmacy_inventory: {
+        Row: {
+          batch_number: string | null
+          category: string
+          created_at: string
+          description: string | null
+          drug_name: string
+          expiry_date: string | null
+          id: string
+          manufacturer: string | null
+          quantity: number
+          reorder_level: number
+          unit: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          batch_number?: string | null
+          category: string
+          created_at?: string
+          description?: string | null
+          drug_name: string
+          expiry_date?: string | null
+          id?: string
+          manufacturer?: string | null
+          quantity?: number
+          reorder_level?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_number?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          drug_name?: string
+          expiry_date?: string | null
+          id?: string
+          manufacturer?: string | null
+          quantity?: number
+          reorder_level?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
