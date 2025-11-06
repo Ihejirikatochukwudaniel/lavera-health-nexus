@@ -131,7 +131,7 @@ const Index = () => {
     >
       <div className="space-y-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <StatCard
             title="Total Patients"
             value={stats.totalPatients}
@@ -155,19 +155,19 @@ const Index = () => {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6 bg-card border-border">
-            <div className="flex items-center justify-between mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          <Card className="p-4 md:p-6 bg-card border-border">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Patient Admissions</h3>
-                <p className="text-sm text-muted-foreground">Last 7 days</p>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">Patient Admissions</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">Last 7 days</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={200} className="md:h-[250px]">
               <BarChart data={admissionsData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
@@ -180,18 +180,18 @@ const Index = () => {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-6 bg-card border-border">
-            <div className="flex items-center justify-between mb-6">
+          <Card className="p-4 md:p-6 bg-card border-border">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Patient Flow</h3>
-                <p className="text-sm text-muted-foreground">Daily activity</p>
+                <h3 className="text-base md:text-lg font-semibold text-foreground">Patient Flow</h3>
+                <p className="text-xs md:text-sm text-muted-foreground">Daily activity</p>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={200} className="md:h-[250px]">
               <LineChart data={patientFlowData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
