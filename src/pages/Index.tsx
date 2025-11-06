@@ -1,8 +1,7 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Users, Bed, Calendar, UserCheck, Plus } from "lucide-react";
+import { Users, Bed, Calendar, UserCheck } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const admissionsData = [
@@ -36,12 +35,6 @@ const Index = () => {
     <MainLayout
       title="Dashboard"
       subtitle="Welcome back, Dr. Smith! Here's what's happening today."
-      action={
-        <Button className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Patient
-        </Button>
-      }
     >
       <div className="space-y-8">
         {/* Stats Grid */}

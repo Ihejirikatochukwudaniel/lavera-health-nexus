@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Calendar, UserCircle, BarChart3, Settings, LogOut, Pill, FileText } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut, Pill, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -8,7 +8,6 @@ const navItems = [
   { icon: Calendar, label: "Appointments", path: "/appointments" },
   { icon: Pill, label: "Pharmacy", path: "/pharmacy" },
   { icon: FileText, label: "Invoices", path: "/invoices" },
-  { icon: UserCircle, label: "Staff", path: "/staff" },
   { icon: BarChart3, label: "Reports", path: "/reports" },
 ];
 
