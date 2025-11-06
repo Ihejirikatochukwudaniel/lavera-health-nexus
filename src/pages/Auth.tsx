@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const signUpSchema = z.object({
   name: z.string()
@@ -41,13 +40,6 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
   const [signInErrors, setSignInErrors] = useState<Record<string, string>>({});
-  const [showOTPVerification, setShowOTPVerification] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [pendingSignUpData, setPendingSignUpData] = useState<{
-    name: string;
-    email: string;
-    password: string;
-  } | null>(null);
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -75,110 +67,30 @@ const Auth = () => {
 
     setIsLoading(true);
 
-    try {
-      // Send OTP email
-      const { error: otpError } = await supabase.functions.invoke("send-otp-email", {
-        body: {
-          email: validation.data.email,
+    const { error } = await supabase.auth.signUp({
+      email: validation.data.email,
+      password: validation.data.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: {
           name: validation.data.name,
         },
-      });
+      },
+    });
 
-      if (otpError) {
-        throw otpError;
-      }
+    setIsLoading(false);
 
-      // Store signup data for later use
-      setPendingSignUpData({
-        name: validation.data.name,
-        email: validation.data.email,
-        password: validation.data.password,
-      });
-      setShowOTPVerification(true);
-      
+    if (error) {
       toast({
-        title: "Verification code sent",
-        description: "Please check your email for the verification code.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Failed to send verification code",
+        title: "Sign up failed",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!pendingSignUpData || otpValue.length !== 6) {
-      toast({
-        title: "Invalid code",
-        description: "Please enter a valid 6-digit code",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Verify OTP
-      const { data: otpData, error: verifyError } = await supabase
-        .from("email_verification_otps")
-        .select("*")
-        .eq("email", pendingSignUpData.email)
-        .eq("otp_code", otpValue)
-        .eq("verified", false)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (verifyError || !otpData) {
-        throw new Error("Invalid or expired verification code");
-      }
-
-      // Mark OTP as verified
-      await supabase
-        .from("email_verification_otps")
-        .update({ verified: true })
-        .eq("id", otpData.id);
-
-      // Create account
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: pendingSignUpData.email,
-        password: pendingSignUpData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            name: pendingSignUpData.name,
-          },
-        },
-      });
-
-      if (signUpError) {
-        throw signUpError;
-      }
-
+    } else {
       toast({
         title: "Account created successfully",
         description: "You can now sign in with your credentials.",
       });
-
-      // Reset states
-      setShowOTPVerification(false);
-      setPendingSignUpData(null);
-      setOtpValue("");
-    } catch (error: any) {
-      toast({
-        title: "Verification failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -275,98 +187,50 @@ const Auth = () => {
             </TabsContent>
             
             <TabsContent value="signup">
-              {!showOTPVerification ? (
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      name="signup-name"
-                      type="text"
-                      placeholder="Dr. John Smith"
-                      required
-                    />
-                    {signUpErrors.name && (
-                      <p className="text-sm text-destructive">{signUpErrors.name}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      name="signup-email"
-                      type="email"
-                      placeholder="doctor@lavera.com"
-                      required
-                    />
-                    {signUpErrors.email && (
-                      <p className="text-sm text-destructive">{signUpErrors.email}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      name="signup-password"
-                      type="password"
-                      placeholder="8+ chars, uppercase, lowercase, number"
-                      required
-                    />
-                    {signUpErrors.password && (
-                      <p className="text-sm text-destructive">{signUpErrors.password}</p>
-                    )}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Sending verification code..." : "Continue"}
-                  </Button>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Email Verification Code</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enter the 6-digit code sent to {pendingSignUpData?.email}
-                    </p>
-                    <div className="flex justify-center py-4">
-                      <InputOTP
-                        maxLength={6}
-                        value={otpValue}
-                        onChange={setOtpValue}
-                      >
-                        <InputOTPGroup>
-                          <InputOTPSlot index={0} />
-                          <InputOTPSlot index={1} />
-                          <InputOTPSlot index={2} />
-                          <InputOTPSlot index={3} />
-                          <InputOTPSlot index={4} />
-                          <InputOTPSlot index={5} />
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setShowOTPVerification(false);
-                        setPendingSignUpData(null);
-                        setOtpValue("");
-                      }}
-                      disabled={isLoading}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={handleVerifyOTP}
-                      disabled={isLoading || otpValue.length !== 6}
-                    >
-                      {isLoading ? "Verifying..." : "Verify & Create Account"}
-                    </Button>
-                  </div>
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    name="signup-name"
+                    type="text"
+                    placeholder="Dr. John Smith"
+                    required
+                  />
+                  {signUpErrors.name && (
+                    <p className="text-sm text-destructive">{signUpErrors.name}</p>
+                  )}
                 </div>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    name="signup-email"
+                    type="email"
+                    placeholder="doctor@lavera.com"
+                    required
+                  />
+                  {signUpErrors.email && (
+                    <p className="text-sm text-destructive">{signUpErrors.email}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    name="signup-password"
+                    type="password"
+                    placeholder="8+ chars, uppercase, lowercase, number"
+                    required
+                  />
+                  {signUpErrors.password && (
+                    <p className="text-sm text-destructive">{signUpErrors.password}</p>
+                  )}
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Creating account..." : "Sign Up"}
+                </Button>
+              </form>
             </TabsContent>
           </Tabs>
         </CardContent>
