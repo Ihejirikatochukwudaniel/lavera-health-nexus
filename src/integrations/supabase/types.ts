@@ -357,6 +357,7 @@ export type Database = {
           dob: string
           gender: string
           id: string
+          medical_history: string | null
           name: string
           updated_at: string | null
         }
@@ -367,6 +368,7 @@ export type Database = {
           dob: string
           gender: string
           id?: string
+          medical_history?: string | null
           name: string
           updated_at?: string | null
         }
@@ -377,6 +379,7 @@ export type Database = {
           dob?: string
           gender?: string
           id?: string
+          medical_history?: string | null
           name?: string
           updated_at?: string | null
         }
