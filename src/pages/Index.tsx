@@ -1,63 +1,156 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Card } from "@/components/ui/card";
-import { Users, Bed, Calendar, UserCheck } from "lucide-react";
+import { Users, DollarSign, Package, Activity } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-const admissionsData = [
-  { day: "Mon", value: 45 },
-  { day: "Tue", value: 32 },
-  { day: "Wed", value: 58 },
-  { day: "Thu", value: 42 },
-  { day: "Fri", value: 75 },
-  { day: "Sat", value: 38 },
-  { day: "Sun", value: 48 },
-];
-
-const patientFlowData = [
-  { time: "00:00", value: 12 },
-  { time: "04:00", value: 8 },
-  { time: "08:00", value: 35 },
-  { time: "12:00", value: 42 },
-  { time: "16:00", value: 38 },
-  { time: "20:00", value: 28 },
-];
-
-const upcomingAppointments = [
-  { time: "10:00 AM", patient: "John Doe", doctor: "Dr. Smith", department: "Cardiology", status: "confirmed" },
-  { time: "11:30 AM", patient: "Jane Smith", doctor: "Dr. Williams", department: "Pediatrics", status: "pending" },
-  { time: "01:00 PM", patient: "Michael Ray", doctor: "Dr. Brown", department: "Neurology", status: "confirmed" },
-  { time: "02:30 PM", patient: "Sarah Lee", doctor: "Dr. Chen", department: "Cardiology", status: "cancelled" },
-];
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const [userName, setUserName] = useState("User");
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    totalRevenue: 0,
+    pharmacyItems: 0,
+    totalInvoices: 0
+  });
+  const [admissionsData] = useState([
+    { day: "Mon", value: 0 },
+    { day: "Tue", value: 0 },
+    { day: "Wed", value: 0 },
+    { day: "Thu", value: 0 },
+    { day: "Fri", value: 0 },
+    { day: "Sat", value: 0 },
+    { day: "Sun", value: 0 },
+  ]);
+  const [patientFlowData] = useState([
+    { time: "00:00", value: 0 },
+    { time: "04:00", value: 0 },
+    { time: "08:00", value: 0 },
+    { time: "12:00", value: 0 },
+    { time: "16:00", value: 0 },
+    { time: "20:00", value: 0 },
+  ]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.name) {
+          setUserName(profile.name);
+        }
+      }
+    };
+
+    const fetchStats = async () => {
+      const { count: patientsCount } = await supabase
+        .from('patients')
+        .select('*', { count: 'exact', head: true });
+
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('total_amount');
+      
+      const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
+
+      const { count: pharmacyCount } = await supabase
+        .from('pharmacy_inventory')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: invoicesCount } = await supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true });
+
+      setStats({
+        totalPatients: patientsCount || 0,
+        totalRevenue: totalRevenue,
+        pharmacyItems: pharmacyCount || 0,
+        totalInvoices: invoicesCount || 0
+      });
+    };
+
+    fetchUserData();
+    fetchStats();
+
+    const patientsChannel = supabase
+      .channel('patients-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'patients'
+        },
+        () => fetchStats()
+      )
+      .subscribe();
+
+    const invoicesChannel = supabase
+      .channel('invoices-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'invoices'
+        },
+        () => fetchStats()
+      )
+      .subscribe();
+
+    const pharmacyChannel = supabase
+      .channel('pharmacy-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pharmacy_inventory'
+        },
+        () => fetchStats()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(patientsChannel);
+      supabase.removeChannel(invoicesChannel);
+      supabase.removeChannel(pharmacyChannel);
+    };
+  }, []);
+
   return (
     <MainLayout
       title="Dashboard"
-      subtitle="Welcome back, Dr. Smith! Here's what's happening today."
+      subtitle={`Welcome back, ${userName}! Here's what's happening today.`}
     >
       <div className="space-y-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Patients"
-            value="1,204"
+            value={stats.totalPatients}
             icon={Users}
           />
           <StatCard
-            title="Bed Occupancy"
-            value="85%"
-            icon={Bed}
+            title="Total Revenue"
+            value={`$${stats.totalRevenue.toLocaleString()}`}
+            icon={DollarSign}
           />
           <StatCard
-            title="Appointments Today"
-            value="62"
-            icon={Calendar}
+            title="Pharmacy Items"
+            value={stats.pharmacyItems}
+            icon={Package}
           />
           <StatCard
-            title="Staff on Duty"
-            value="128"
-            icon={UserCheck}
+            title="Total Invoices"
+            value={stats.totalInvoices}
+            icon={Activity}
           />
         </div>
 
@@ -66,10 +159,9 @@ const Index = () => {
           <Card className="p-6 bg-card border-border">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Admissions per Day</h3>
+                <h3 className="text-lg font-semibold text-foreground">Patient Admissions</h3>
                 <p className="text-sm text-muted-foreground">Last 7 days</p>
               </div>
-              <span className="text-sm text-success">+5.2%</span>
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={admissionsData}>
@@ -92,9 +184,8 @@ const Index = () => {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">Patient Flow</h3>
-                <p className="text-sm text-muted-foreground">Last 7 days</p>
+                <p className="text-sm text-muted-foreground">Daily activity</p>
               </div>
-              <span className="text-sm text-destructive">-1.8%</span>
             </div>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={patientFlowData}>
@@ -120,44 +211,6 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Upcoming Appointments */}
-        <Card className="p-6 bg-card border-border">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-foreground">Upcoming Appointments</h3>
-            <p className="text-sm text-muted-foreground">Appointments scheduled for today.</p>
-          </div>
-          <div className="space-y-4">
-            {upcomingAppointments.map((appointment, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 rounded-lg bg-secondary border border-border hover:border-primary/50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="text-center min-w-[80px]">
-                    <p className="text-sm font-semibold text-foreground">{appointment.time}</p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{appointment.patient}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {appointment.doctor} - {appointment.department}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    appointment.status === "confirmed"
-                      ? "bg-success/10 text-success"
-                      : appointment.status === "pending"
-                      ? "bg-warning/10 text-warning"
-                      : "bg-destructive/10 text-destructive"
-                  }`}
-                >
-                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
     </MainLayout>
   );

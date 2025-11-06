@@ -1,11 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Calendar, BarChart3, Settings, LogOut, Pill, FileText } from "lucide-react";
+import { LayoutDashboard, Users, BarChart3, Settings, LogOut, Pill, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Users, label: "Patients", path: "/patients" },
-  { icon: Calendar, label: "Appointments", path: "/appointments" },
   { icon: Pill, label: "Pharmacy", path: "/pharmacy" },
   { icon: FileText, label: "Invoices", path: "/invoices" },
   { icon: BarChart3, label: "Reports", path: "/reports" },
