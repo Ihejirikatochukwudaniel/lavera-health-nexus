@@ -504,6 +504,51 @@ export type Database = {
         }
         Relationships: []
       }
+      staff: {
+        Row: {
+          address: string | null
+          contact: string
+          created_at: string | null
+          date_of_employment: string
+          department: string
+          email: string
+          id: string
+          name: string
+          role: string
+          staff_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact: string
+          created_at?: string | null
+          date_of_employment?: string
+          department: string
+          email: string
+          id?: string
+          name: string
+          role: string
+          staff_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact?: string
+          created_at?: string | null
+          date_of_employment?: string
+          department?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+          staff_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
