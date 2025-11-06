@@ -1,10 +1,11 @@
-import { Search, Bell, Moon, LogOut } from "lucide-react";
+import { Search, Moon, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 interface HeaderProps {
   title?: string;
@@ -15,6 +16,35 @@ interface HeaderProps {
 export const Header = ({ title, subtitle, action }: HeaderProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [userName, setUserName] = useState<string>("User");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.name) {
+          setUserName(profile.name);
+        } else if (user.email) {
+          setUserName(user.email.split('@')[0]);
+        }
+      }
+    };
+
+    fetchUserProfile();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchUserProfile();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -44,24 +74,16 @@ export const Header = ({ title, subtitle, action }: HeaderProps) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="relative">
-            <Moon className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-          </Button>
           <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign Out">
             <LogOut className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3 pl-4 border-l border-border">
             <Avatar>
               <AvatarImage src="/placeholder.svg" />
-              <AvatarFallback>DS</AvatarFallback>
+              <AvatarFallback>{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="text-sm">
-              <p className="font-semibold text-foreground">Dr. Smith</p>
-              <p className="text-muted-foreground">Cardiologist</p>
+              <p className="font-semibold text-foreground">{userName}</p>
             </div>
           </div>
         </div>
